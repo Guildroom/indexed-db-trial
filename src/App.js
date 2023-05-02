@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { db } from "./dbDixie/initDb"
 import { get, set } from 'idb-keyval';
 import { initDB, Stores } from "./dbVanila/iniDb"
@@ -16,18 +16,22 @@ export default function Home() {
   }
 
   //dixie DB
-
-  const bulkAdd = async ()=> {
+  const bulkAdd = async () => {
     try {
+      const now = Date.now(); 
+      console.log(now)
       db.friends.bulkAdd(data)
+      const instant = Date.now();
+      console.log(instant)
+      console.log('difference : ' + (instant - now));
     } catch (error) {
       console.log(error)
     }
   }
-  const addFriend= async (e) =>{
+  const addFriend = async (e) => {
     try {
       e.preventDefault()
-  
+
       const target = e.target
       const name = target.name.value
       const email = target.email.value
@@ -42,66 +46,70 @@ export default function Home() {
   const friends = useLiveQuery(
     async () => await db.friends.toArray()
   );
-  
-  const updatequery = async (id) =>{
-    await db.friends.update(id, {name: "booooo"});
+  const updatequery = async (id) => {
+    await db.friends.update(id, { name: "booooo" });
   }
-
-  const deletequery = async (id) =>{
+  const deletequery = async (id) => {
     await db.friends.delete(id);
   }
-
-  const searchQuery = async () =>{
+  const searchQuery = async () => {
     const abcFriends = await db.friends
-    .where("name")
-    .startsWithAnyOfIgnoreCase(["asd"])
-    .toArray();
+      .where("name")
+      .startsWithAnyOfIgnoreCase(["asd"])
+      .toArray();
 
     console.log(abcFriends)
   }
-
-  const searchName= async e => {
-    e.preventDefault()
-    
-    const target = e.target
-    const name = target.name.value
-
+  const searchName = async e => {
+    // e.preventDefault()
+    // const target = e.target
+    const name = e.target.value;
+    const now = Date.now(); // Unix timestamp in milliseconds
+    console.log(now);
     const abcFriends = await db.friends
-    .where("Name")
-    .startsWithAnyOfIgnoreCase([name])
-    .toArray();
+      .where("Name")
+      .startsWithAnyOfIgnoreCase([name])
+      .toArray();
 
     setUsers(abcFriends)
-    setTimeout(() => {
-      
-    console.log(users)
-    }, 300);
+    console.log(abcFriends.length);
+    const instant = Date.now(); // Unix timestamp in milliseconds
+    console.log(instant);
+    console.log('difference : ' + (instant - now));
   }
+  let timer;
+  const debounce = (cb, time) => (args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => cb(args), time);
+  }
+  const searchNameFromApi = (e) => {
+    searchName(e);
+  }
+  const inputChangeHandler = useCallback(debounce(searchNameFromApi, 1000), []);
 
   //IDB-Keyval DB
-  const setUser = async(e)=>{
+  const setUser = async (e) => {
     try {
       e.preventDefault()
-
+      
       const target = e.target
       const name = target.name.value
       const email = target.email.value
       const id = Date.now()
       const user = {
-        name : name,
-        email : email,
-        id : id,
+        name: name,
+        email: email,
+        id: id,
       }
       await setDb(id, user);
     } catch (error) {
       console.log(error)
     }
   }
-
-  const setDb = async (key, val)=>{
-    set(key,val)
+  const setDb = async (key, val) => {
+    set(key, val)
   }
-  const getDb = async (id)=>{
+  const getDb = async (id) => {
     get(id).then((val) => console.log(val));
   }
 
@@ -110,21 +118,20 @@ export default function Home() {
     const users = await getStoreData(Stores.Users)
     setUsers(users)
   }
-  
-  
+
   const handleAddUser = async e => {
     e.preventDefault()
-  
+
     const target = e.target
     const name = target.name.value
     const email = target.email.value
     const id = Date.now()
-  
+    
     if (name.trim() === "" || email.trim() === "") {
       alert("Please enter a valid name and email")
       return
     }
-  
+
     try {
       const res = await addData(Stores.Users, { name, email, id })
       console.log(res)
@@ -132,14 +139,13 @@ export default function Home() {
       console.log(err)
     }
   }
-
-  const handleUpdateUser = async user=>{
+  const handleUpdateUser = async user => {
     try {
       await updateData(Stores.Users, user.id)
       handleGetUsers()
-  } catch (err) {
-    console.log(err)
-  }
+    } catch (err) {
+      console.log(err)
+    }
   }
 
   const handleRemoveUser = async id => {
@@ -150,7 +156,6 @@ export default function Home() {
       console.log(err)
     }
   }
-  
 
   return (
     <main style={{ textAlign: "center", marginTop: "3rem" }}>
@@ -167,41 +172,40 @@ export default function Home() {
           </form>
           <button onClick={bulkAdd}>add User</button>
           <button onClick={searchQuery}>Get ABC User</button>
-          <button onClick={()=>getDb(1681801923256)}>getDb</button>
+          <button onClick={() => getDb(1681801923256)}>getDb</button>
         </>
       )}
-        <h2>Serach Name</h2>
-            <form onSubmit={searchName}>
-              <input type="text" name="name" placeholder="Name" />
-              <button type="submit">Find User</button>
-            </form>
-
-        {users && users.length > 0 &&
+      <h2>Serach Name</h2>
+      <form>
+        <input type="text" name="name" placeholder="Name" onChange={inputChangeHandler} />
+        <button type="submit">Find User</button>
+      </form>
+      {users && users.length > 0 &&
         <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>ID</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users && users.map((users) => (
-            <tr key={users.id}>
-              <td>{users.name}</td>
-              <td>{users.email}</td>
-              <td>{users.id}</td>
-              <td>
-                <button onClick={() => deletequery(users.id)}>Delete</button>
-              </td>
-              <td>
-                <button onClick={() => updatequery(users.id)}>update</button>
-              </td>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>ID</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-        }
+          </thead>
+          <tbody>
+            {users && users.map((users) => (
+              <tr key={users.id}>
+                <td>{users.name}</td>
+                <td>{users.email}</td>
+                <td>{users.id}</td>
+                <td>
+                  <button onClick={() => deletequery(users.id)}>Delete</button>
+                </td>
+                <td>
+                  <button onClick={() => updatequery(users.id)}>update</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      }
     </main>
   )
 }
