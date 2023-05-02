@@ -67,7 +67,7 @@ export default function Home() {
     const name = target.name.value
 
     const abcFriends = await db.friends
-    .where("name")
+    .where("Name")
     .startsWithAnyOfIgnoreCase([name])
     .toArray();
 
@@ -172,7 +172,7 @@ export default function Home() {
       )}
         <h2>Serach Name</h2>
             <form onSubmit={searchName}>
-              <input type="text" name="Name" placeholder="Name" />
+              <input type="text" name="name" placeholder="Name" />
               <button type="submit">Find User</button>
             </form>
 
