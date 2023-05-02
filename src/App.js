@@ -4,6 +4,7 @@ import { get, set } from 'idb-keyval';
 import { initDB, Stores } from "./dbVanila/iniDb"
 import { addData, getStoreData, deleteData, updateData } from "./dbVanila/userDb"
 import { useLiveQuery } from "dexie-react-hooks"
+import { data } from "./data-generate";
 
 export default function Home() {
   const [isDBReady, setIsDBReady] = useState(false)
@@ -15,6 +16,14 @@ export default function Home() {
   }
 
   //dixie DB
+
+  const bulkAdd = async ()=> {
+    try {
+      db.friends.bulkAdd(data)
+    } catch (error) {
+      console.log(error)
+    }
+  }
   const addFriend= async (e) =>{
     try {
       e.preventDefault()
@@ -45,10 +54,28 @@ export default function Home() {
   const searchQuery = async () =>{
     const abcFriends = await db.friends
     .where("name")
-    .startsWithAnyOfIgnoreCase(["asd", "b", "c"])
+    .startsWithAnyOfIgnoreCase(["asd"])
     .toArray();
 
     console.log(abcFriends)
+  }
+
+  const searchName= async e => {
+    e.preventDefault()
+    
+    const target = e.target
+    const name = target.name.value
+
+    const abcFriends = await db.friends
+    .where("name")
+    .startsWithAnyOfIgnoreCase([name])
+    .toArray();
+
+    setUsers(abcFriends)
+    setTimeout(() => {
+      
+    console.log(users)
+    }, 300);
   }
 
   //IDB-Keyval DB
@@ -133,41 +160,48 @@ export default function Home() {
       ) : (
         <>
           <h2>DB is ready</h2>
-          <form onSubmit={setUser}>
+          <form onSubmit={addFriend}>
             <input type="text" name="name" placeholder="Name" />
             <input type="email" name="email" placeholder="Email" />
             <button type="submit">Add User</button>
           </form>
-          <button onClick={handleGetUsers}>Get User</button>
+          <button onClick={bulkAdd}>add User</button>
           <button onClick={searchQuery}>Get ABC User</button>
           <button onClick={()=>getDb(1681801923256)}>getDb</button>
         </>
-      )} {friends && friends.length > 0 && (
+      )}
+        <h2>Serach Name</h2>
+            <form onSubmit={searchName}>
+              <input type="text" name="name" placeholder="Name" />
+              <button type="submit">Find User</button>
+            </form>
+
+        {users && users.length > 0 &&
         <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>ID</th>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users && users.map((users) => (
+            <tr key={users.id}>
+              <td>{users.name}</td>
+              <td>{users.email}</td>
+              <td>{users.id}</td>
+              <td>
+                <button onClick={() => deletequery(users.id)}>Delete</button>
+              </td>
+              <td>
+                <button onClick={() => updatequery(users.id)}>update</button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {friends && friends.map((friendss) => (
-              <tr key={friendss.id}>
-                <td>{friendss.name}</td>
-                <td>{friendss.email}</td>
-                <td>{friendss.id}</td>
-                <td>
-                  <button onClick={() => deletequery(friendss.id)}>Delete</button>
-                </td>
-                <td>
-                  <button onClick={() => updatequery(friendss.id)}>update</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        )}
+          ))}
+        </tbody>
+      </table>
+        }
     </main>
   )
 }
